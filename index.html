@@ -1,0 +1,557 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bingo App</title>  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f2f4f7;
+      color: #172033;
+    }
+
+    .app {
+      max-width: 500px;
+      margin: auto;
+      padding: 20px 14px 30px;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 5px 0 4px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #667085;
+      margin-bottom: 18px;
+    }
+
+    .top {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .info {
+      background: white;
+      border-radius: 15px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .label {
+      font-size: 13px;
+      color: #667085;
+    }
+
+    .value {
+      font-size: 30px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    .board {
+      background: white;
+      padding: 10px;
+      border-radius: 18px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.08);
+    }
+
+    .letters,
+    .card {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 7px;
+    }
+
+    .letters div {
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      padding: 6px;
+    }
+
+    .cell {
+      aspect-ratio: 1;
+      border: 1px solid #d0d5dd;
+      border-radius: 10px;
+      background: #fff;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .cell.called {
+      background: #e9f2ff;
+    }
+
+    .cell.marked {
+      background: #2563eb;
+      color: white;
+      border-color: #2563eb;
+    }
+
+    .cell.free {
+      background: #16a34a;
+      color: white;
+      cursor: default;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    button.action {
+      flex: 1;
+      padding: 14px;
+      border: 0;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #callButton {
+      background: #2563eb;
+      color: white;
+    }
+
+    #newButton {
+      background: #172033;
+      color: white;
+    }
+
+    #autoButton {
+      background: #e5e7eb;
+      color: #172033;
+    }
+
+    #status {
+      text-align: center;
+      min-height: 22px;
+      margin: 14px 0;
+      font-weight: 600;
+    }
+
+    .called-title {
+      margin-top: 20px;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    #calledNumbers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .number {
+      background: white;
+      border: 1px solid #d0d5dd;
+      padding: 6px 9px;
+      border-radius: 20px;
+      font-size: 13px;
+    }
+
+    .win {
+      color: #16a34a;
+      font-size: 22px;
+    }
+  </style></head><body><div class="app">  <h1>🎱 BINGO</h1>
+  <div class="subtitle">Tap a called number on your card</div>  <div class="top">
+    <div class="info">
+      <div class="label">Last Number</div>
+      <div class="value" id="lastNumber">—</div>
+    </div><div class="info">
+  <div class="label">Called</div>
+  <div class="value" id="calledCount">0</div>
+</div>
+
+  </div>  <div class="board"><div class="letters">
+  <div>B</div>
+  <div>I</div>
+  <div>N</div>
+  <div>G</div>
+  <div>O</div>
+</div>
+
+<div class="card" id="card"></div>
+
+  </div>  <div class="buttons">
+    <button class="action" id="callButton">📢 Call Number</button>
+    <button class="action" id="newButton">🔄 New Game</button>
+  </div>  <div class="buttons">
+    <button class="action" id="autoButton">▶ Auto Call</button>
+  </div>  <div id="status">
+    Press "Call Number" to start.
+  </div>  <div class="called-title">
+    Called Numbers
+  </div>  <div id="calledNumbers">
+    None yet
+  </div></div><script>
+
+let card = [];
+let calledNumbers = [];
+let markedNumbers = new Set(["FREE"]);
+let gameOver = false;
+let autoTimer = null;
+
+const cardElement = document.getElementById("card");
+const lastNumberElement = document.getElementById("lastNumber");
+const calledCountElement = document.getElementById("calledCount");
+const statusElement = document.getElementById("status");
+const calledNumbersElement = document.getElementById("calledNumbers");
+
+function shuffle(array) {
+
+  for (let i = array.length - 1; i > 0; i--) {
+
+    const j = Math.floor(Math.random() * (i + 1));
+
+    [array[i], array[j]] = [array[j], array[i]];
+
+  }
+
+  return array;
+}
+
+
+function createCard() {
+
+  card = [];
+
+  for (let column = 0; column < 5; column++) {
+
+    const start = column * 15 + 1;
+
+    let numbers = [];
+
+    for (let i = 0; i < 15; i++) {
+      numbers.push(start + i);
+    }
+
+    shuffle(numbers);
+
+    card.push(numbers.slice(0, 5));
+
+  }
+
+  card[2][2] = "FREE";
+
+}
+
+
+function renderCard() {
+
+  cardElement.innerHTML = "";
+
+  for (let row = 0; row < 5; row++) {
+
+    for (let column = 0; column < 5; column++) {
+
+      const value = card[column][row];
+
+      const button = document.createElement("button");
+
+      button.className = "cell";
+
+      if (value === "FREE") {
+
+        button.textContent = "★";
+        button.classList.add("free");
+
+      } else {
+
+        button.textContent = value;
+
+        if (calledNumbers.includes(value)) {
+          button.classList.add("called");
+        }
+
+        if (markedNumbers.has(String(value))) {
+          button.classList.add("marked");
+        }
+
+        button.addEventListener("click", function () {
+
+          if (calledNumbers.includes(value) && !gameOver) {
+
+            markedNumbers.add(String(value));
+
+            renderCard();
+
+            checkBingo();
+
+          }
+
+        });
+
+      }
+
+      cardElement.appendChild(button);
+
+    }
+
+  }
+
+}
+
+
+function callNumber() {
+
+  if (gameOver) return;
+
+  if (calledNumbers.length >= 75) {
+
+    statusElement.textContent = "All 75 numbers have been called.";
+
+    stopAuto();
+
+    return;
+
+  }
+
+  let number;
+
+  do {
+
+    number = Math.floor(Math.random() * 75) + 1;
+
+  } while (calledNumbers.includes(number));
+
+  calledNumbers.push(number);
+
+  let letter;
+
+  if (number <= 15) {
+    letter = "B";
+  } else if (number <= 30) {
+    letter = "I";
+  } else if (number <= 45) {
+    letter = "N";
+  } else if (number <= 60) {
+    letter = "G";
+  } else {
+    letter = "O";
+  }
+
+  lastNumberElement.textContent = letter + "-" + number;
+
+  calledCountElement.textContent = calledNumbers.length;
+
+  statusElement.textContent =
+    "Number " + number + " called. Tap it on your card.";
+
+  renderCard();
+
+  updateCalledNumbers();
+
+}
+
+
+function updateCalledNumbers() {
+
+  if (calledNumbers.length === 0) {
+
+    calledNumbersElement.textContent = "None yet";
+
+    return;
+
+  }
+
+  calledNumbersElement.innerHTML = "";
+
+  calledNumbers.forEach(function(number) {
+
+    const span = document.createElement("span");
+
+    span.className = "number";
+
+    span.textContent = number;
+
+    calledNumbersElement.appendChild(span);
+
+  });
+
+}
+
+
+function checkBingo() {
+
+  let win = false;
+
+  // Rows
+
+  for (let row = 0; row < 5; row++) {
+
+    let complete = true;
+
+    for (let column = 0; column < 5; column++) {
+
+      if (!markedNumbers.has(String(card[column][row]))) {
+        complete = false;
+      }
+
+    }
+
+    if (complete) win = true;
+
+  }
+
+
+  // Columns
+
+  for (let column = 0; column < 5; column++) {
+
+    let complete = true;
+
+    for (let row = 0; row < 5; row++) {
+
+      if (!markedNumbers.has(String(card[column][row]))) {
+        complete = false;
+      }
+
+    }
+
+    if (complete) win = true;
+
+  }
+
+
+  // Diagonal
+
+  let diagonal1 = true;
+
+  for (let i = 0; i < 5; i++) {
+
+    if (!markedNumbers.has(String(card[i][i]))) {
+      diagonal1 = false;
+    }
+
+  }
+
+  if (diagonal1) win = true;
+
+
+  // Other diagonal
+
+  let diagonal2 = true;
+
+  for (let i = 0; i < 5; i++) {
+
+    if (!markedNumbers.has(String(card[i][4 - i]))) {
+      diagonal2 = false;
+    }
+
+  }
+
+  if (diagonal2) win = true;
+
+
+  if (win) {
+
+    gameOver = true;
+
+    stopAuto();
+
+    statusElement.innerHTML =
+      '<span class="win">🎉 BINGO! You won!</span>';
+
+  }
+
+}
+
+
+function newGame() {
+
+  stopAuto();
+
+  calledNumbers = [];
+
+  markedNumbers = new Set(["FREE"]);
+
+  gameOver = false;
+
+  lastNumberElement.textContent = "—";
+
+  calledCountElement.textContent = "0";
+
+  statusElement.textContent =
+    'Press "Call Number" to start.';
+
+  createCard();
+
+  renderCard();
+
+  updateCalledNumbers();
+
+}
+
+
+function toggleAuto() {
+
+  if (autoTimer) {
+
+    stopAuto();
+
+    statusElement.textContent = "Auto call stopped.";
+
+  } else {
+
+    if (gameOver) return;
+
+    callNumber();
+
+    autoTimer = setInterval(function() {
+
+      callNumber();
+
+    }, 2000);
+
+    document.getElementById("autoButton").textContent =
+      "⏹ Stop Auto";
+
+  }
+
+}
+
+
+function stopAuto() {
+
+  if (autoTimer) {
+
+    clearInterval(autoTimer);
+
+    autoTimer = null;
+
+  }
+
+  document.getElementById("autoButton").textContent =
+    "▶ Auto Call";
+
+}
+
+
+document.getElementById("callButton")
+  .addEventListener("click", callNumber);
+
+document.getElementById("newButton")
+  .addEventListener("click", newGame);
+
+document.getElementById("autoButton")
+  .addEventListener("click", toggleAuto);
+
+
+newGame();
+
+</script></body>
+</html>
