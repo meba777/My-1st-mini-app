@@ -1,5 +1,6 @@
 <!DOCTYPE html><html lang="en">
 <head>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bingo App</title>  <style>
@@ -7,7 +8,9 @@
       box-sizing: border-box;
     }
 
-    body {
+    body
+    <div id="telegramUser"></div>
+    {
       margin: 0;
       font-family: Arial, sans-serif;
       background: #f2f4f7;
@@ -552,6 +555,20 @@ document.getElementById("autoButton")
 
 
 newGame();
+   const tg = window.Telegram.WebApp;
+
+tg.ready();
+tg.expand();
+
+const user = tg.initDataUnsafe?.user;
+
+if (user) {
+    document.getElementById("telegramUser").innerHTML =
+        `👤 ${user.first_name}${user.last_name ? " " + user.last_name : ""}`;
+} else {
+    document.getElementById("telegramUser").innerHTML =
+        "⚠️ Open this game from Telegram";
+} 
 
 </script></body>
 </html>
